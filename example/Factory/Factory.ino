@@ -244,18 +244,6 @@ void setup() {
 void loop() { // Put your main code here, to run repeatedly:
   lv_timer_handler();
   button.tick();
-//  if(SD_MMC.exists("/smf")) {
-//    File systemMessageFile = SD_MMC.open("/smf");
-//    if( systemMessageFile ) {
-//      int32_t x, y;
-//      String readString = "";
-//      while( systemMessageFile.available() ) {
-//        readString = systemMessageFile.readStringUntil('\n'); 
-//        PRINT_STR(readString, x, y)
-//      }
-//      systemMessageFile.close();
-//    }
-//  }
   delay(5);
 }
 
