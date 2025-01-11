@@ -29,6 +29,7 @@ TFT_eSPI tft = TFT_eSPI();
 CRGB leds;
 OneButton button(BTN_PIN, true);
 uint8_t btn_press = 0;
+int rotation = 1;
 bool msc_initialized = false;
 lv_obj_t *tv;
 #define PRINT_STR(str, x, y)                                                                                                                         \
@@ -142,10 +143,25 @@ void startMSC() {
   
     USB.begin();
     USB.onEvent(usbEventCallback);
+
+    msc_initialized = true;
   }
   
   return;
+}
+
+void stopMSC() {
+  if(msc_initialized) {
+    
+    Serial.println("Stopping MSC");
+    msc.end();
+    
+    //Serial.println("Stopping USB");
+    //USB.end();
+
+    msc_initialized = false;
   }
+}
 
 void setup() {
   int32_t x, y;
@@ -157,7 +173,7 @@ void setup() {
 
   // Initialise TFT
   tft.init();
-  tft.setRotation(1);
+  tft.setRotation(rotation);
   tft.fillScreen(TFT_BLACK);
   digitalWrite(TFT_LEDA_PIN, 0);
   tft.setTextFont(1);
@@ -200,6 +216,19 @@ void setup() {
     btn_press = 1 ^ btn_press;
     lv_obj_set_tile_id(tv, 0, btn_press, LV_ANIM_ON);
     startMSC();
+  });
+
+  button.attachDoubleClick([] {
+    stopMSC();
+  });
+
+  button.attachLongPressStart([] {
+    if(rotation == 1) {
+      rotation = 3;
+    } else {
+      rotation = 1;
+    }
+    tft.setRotation(rotation);
   });
 
   xTaskCreatePinnedToCore(led_task, "led_task", 1024, NULL, 1, NULL, 0);
@@ -250,14 +279,6 @@ void loop() { // Put your main code here, to run repeatedly:
 #if !SOC_USB_OTG_SUPPORTED || ARDUINO_USB_MODE
 #error Device does not support USB_OTG or native USB CDC/JTAG is selected
 #endif
-
-//int clk = 36;
-//int cmd = 35;
-//int d0 = 37;
-//int d1 = 38;
-//int d2 = 33;
-//int d3 = 34;
-bool onebit = false;  // set to false for 4-bit. 1-bit will ignore the d1-d3 pins (but d3 must be pulled high)
 
 static int32_t onWrite(uint32_t lba, uint32_t offset, uint8_t *buffer, uint32_t bufsize) {
   uint32_t secSize = SD_MMC.sectorSize();
