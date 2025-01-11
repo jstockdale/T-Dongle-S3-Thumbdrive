@@ -31,6 +31,7 @@ OneButton button(BTN_PIN, true);
 uint8_t btn_press = 0;
 int rotation = 1;
 bool msc_initialized = false;
+bool tft_backlight_on = true;
 lv_obj_t *tv;
 #define PRINT_STR(str, x, y)                                                                                                                         \
   do {                                                                                                                                               \
@@ -119,7 +120,7 @@ void scan_wifi_rssi(int32_t &x, int32_t &y) {
       str += ") ";
       str += (WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? " " : "*";
       PRINT_STR(str, x, y);
-      delay(5);
+      delay(1);
     }
   }
   Serial.println("");
@@ -127,7 +128,7 @@ void scan_wifi_rssi(int32_t &x, int32_t &y) {
 }
 
 void startMSC() {
-  if(!msc_initialized) {
+  if (!msc_initialized) {
     Serial.println("Initializing MSC");
     // Initialize USB metadata and callbacks for MSC (Mass Storage Class)
     msc.vendorID("ESP32");
@@ -138,24 +139,24 @@ void startMSC() {
     msc.onStartStop(onStartStop);
     msc.mediaPresent(true);
     msc.begin(SD_MMC.numSectors(), SD_MMC.sectorSize());
-  
+
     Serial.println("Initializing USB");
-  
+
     USB.begin();
     USB.onEvent(usbEventCallback);
 
     msc_initialized = true;
   }
-  
+
   return;
 }
 
 void stopMSC() {
-  if(msc_initialized) {
-    
+  if (msc_initialized) {
+
     Serial.println("Stopping MSC");
     msc.end();
-    
+
     //Serial.println("Stopping USB");
     //USB.end();
 
@@ -163,9 +164,23 @@ void stopMSC() {
   }
 }
 
+// Handler function for MultiClick the button with self pointer as a parameter
+static void handleMultiClick(void *oneButton) {
+  //Serial.println("MultiClick numberClicks=%d!", oneButton->getNumberClicks());
+  if (button.getNumberClicks() == 3) {
+    if (tft_backlight_on) {
+      digitalWrite(TFT_LEDA_PIN, 1);
+      tft_backlight_on = false;
+    } else {
+      digitalWrite(TFT_LEDA_PIN, 0);
+      tft_backlight_on = true;
+    }
+  }
+}
+
 void setup() {
   int32_t x, y;
-  
+
   Serial.begin(115200);
   delay(200);
   Serial.println("Hello from T-Dongle-S3!");
@@ -179,36 +194,73 @@ void setup() {
   tft.setTextFont(1);
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.pushImage(0, 0, 160, 80, (uint16_t *)gImage_logo);
-  delay(500);
 
+  delay(1000);
+
+  button.attachClick([] {
+    startMSC();
+  });
+
+  button.attachDoubleClick([] {
+    stopMSC();
+  });
+
+  button.attachLongPressStart([] {
+    if (rotation == 1) {
+      rotation = 3;
+    } else {
+      rotation = 1;
+    }
+    tft.setRotation(rotation);
+  });
+
+  // MultiClick button event attachment with self pointer as a parameter
+  button.attachMultiClick(handleMultiClick, &button);
+
+  button.tick();
+  
   //Serial.println("Mounting SDcard");
+  x = y = 0;
+  tft.fillScreen(TFT_BLACK);
   PRINT_STR("Mounting SDcard", x, y);
   sd_init(x, y);
-  
+
   Serial.printf("Card Size: %lluMB\n", SD_MMC.totalBytes() / 1024 / 1024);
   Serial.printf("Sector: %d\tCount: %d\n", SD_MMC.sectorSize(), SD_MMC.numSectors());
-  
-  delay(500);
+
+  for(int i = 0; i < 10; ++i) {
+    delay(100);
+    button.tick();
+  }
+  //delay(1000);
   x = y = 0;
   tft.fillScreen(TFT_BLACK);
 
   File motdFile = SD_MMC.open("/motd");
-  if( motdFile ) {
+  if ( motdFile ) {
     String readString = "";
-    while( motdFile.available() ) {
-      readString = motdFile.readStringUntil('\n'); 
+    while ( motdFile.available() ) {
+      readString = motdFile.readStringUntil('\n');
       PRINT_STR(readString, x, y)
     }
     motdFile.close();
   }
-  delay(3000);
+  for(int i = 0; i < 30; ++i) {
+    delay(100);
+    button.tick();
+  }
+  //delay(3000);
 
   //delay(500);
   x = y = 0;
   tft.fillScreen(TFT_BLACK);
   PRINT_STR("Scanning WiFi...", x, y);
   scan_wifi_rssi(x, y);
-  delay(4000);
+  for(int i = 0; i < 40; ++i) {
+    delay(100);
+    button.tick();
+  }
+  //delay(4000);
   // BGR ordering is typical
   FastLED.addLeds<APA102, LED_DI_PIN, LED_CI_PIN, BGR>(&leds, 1);
 
@@ -222,26 +274,17 @@ void setup() {
     stopMSC();
   });
 
-  button.attachLongPressStart([] {
-    if(rotation == 1) {
-      rotation = 3;
-    } else {
-      rotation = 1;
-    }
-    tft.setRotation(rotation);
-  });
-
   xTaskCreatePinnedToCore(led_task, "led_task", 1024, NULL, 1, NULL, 0);
 
   lvgl_init();
 
   // Show CC CE
   lv_obj_t * img_cc = lv_img_create(lv_scr_act());
-  lv_img_set_src(img_cc,&image_logo);
+  lv_img_set_src(img_cc, &image_logo);
   lv_obj_center(img_cc);
-  int i = 500;
-  while(i--){
-    lv_task_handler();delay(5);
+  int i = 250;
+  while (i--) {
+    lv_task_handler(); delay(5);
   }
   lv_obj_del(img_cc);
   // End
@@ -273,12 +316,32 @@ void setup() {
 void loop() { // Put your main code here, to run repeatedly:
   lv_timer_handler();
   button.tick();
+  //  if(SD_MMC.exists("/smf")) {
+  //    File systemMessageFile = SD_MMC.open("/smf");
+  //    if( systemMessageFile ) {
+  //      int32_t x, y;
+  //      String readString = "";
+  //      while( systemMessageFile.available() ) {
+  //        readString = systemMessageFile.readStringUntil('\n');
+  //        PRINT_STR(readString, x, y)
+  //      }
+  //      systemMessageFile.close();
+  //    }
+  //  }
   delay(5);
 }
 
 #if !SOC_USB_OTG_SUPPORTED || ARDUINO_USB_MODE
 #error Device does not support USB_OTG or native USB CDC/JTAG is selected
 #endif
+
+//int clk = 36;
+//int cmd = 35;
+//int d0 = 37;
+//int d1 = 38;
+//int d2 = 33;
+//int d3 = 34;
+bool onebit = false;  // set to false for 4-bit. 1-bit will ignore the d1-d3 pins (but d3 must be pulled high)
 
 static int32_t onWrite(uint32_t lba, uint32_t offset, uint8_t *buffer, uint32_t bufsize) {
   uint32_t secSize = SD_MMC.sectorSize();
