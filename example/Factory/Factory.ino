@@ -444,7 +444,7 @@ void loop() { // Put your main code here, to run repeatedly:
       Serial0.println(input);
       processCommand(input);
     }
-    Serial0.print("> ");
+    Serial0.print("\r\n> ");
   }
   
   delay(1);
