@@ -447,8 +447,10 @@ void loop() { // Put your main code here, to run repeatedly:
       Serial0.print("Received Command: ");
       Serial0.println(input);
       processCommand(input);
+    } else {
+      Serial0.print("\r\n");
     }
-    Serial0.print("\r\n> ");
+    Serial0.print("> ");
   }
   
   delay(1);
@@ -685,14 +687,14 @@ int processCommand(String input) {
     } else if (input == "help") {
       displayHelp();
     } else {
-      Serial0.println("\r\nDid not recognize command. Type \"help\" ...");
+      Serial0.println("Did not recognize command. Type \"help\" ...");
     }
   }
   return 0;
 }
 
 void displayHelp() {
-  Serial0.println("\r\nAvailable commands: poweroff | reboot | downloadmode | sdinfo | startmsc | stopmsc | screenon | screenoff");
+  Serial0.println("Available commands: poweroff | reboot | downloadmode | sdinfo | startmsc | stopmsc | screenon | screenoff");
 }
 
 void sdInfo() {
