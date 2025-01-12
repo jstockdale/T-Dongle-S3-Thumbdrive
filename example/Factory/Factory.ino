@@ -428,7 +428,7 @@ void loop() { // Put your main code here, to run repeatedly:
   String input = getSerialInput();
 
   if (input != "" && input != "\n") {
-    Serial0.println("\r\n");
+    Serial0.println();
     Serial0.print("Received Command: ");
     Serial0.println(input);
     if(input.length() > 0) {
@@ -656,6 +656,8 @@ int processCommand(String input) {
     } else if (input == "downloadmode") {
       Serial0.println("Entering download mode ...");
       downloadMode();
+    } else if (input == "sdinfo" ) {
+      sdInfo();
     } else if (input == "startmsc") {
       startMSC();
     } else if (input == "stopmsc") {
@@ -670,5 +672,42 @@ int processCommand(String input) {
 }
 
 void displayHelp() {
-  Serial0.println("\n\rAvailable commands: poweroff | reboot | downloadmode | startmsc | stopmsc");
+  Serial0.println("\n\rAvailable commands: poweroff | reboot | downloadmode | sdinfo | startmsc | stopmsc");
+}
+
+void sdInfo() {
+  uint8_t cardType = SD_MMC.cardType();
+
+  if (cardType == CARD_NONE) {
+    Serial0.println("No SD_MMC card attached");
+    return;
+  }
+  String str;
+  str = "SD_MMC Card Type: ";
+  if (cardType == CARD_MMC) {
+    str += "MMC";
+  } else if (cardType == CARD_SD) {
+    str += "SD_MMCSC";
+  } else if (cardType == CARD_SDHC) {
+    str += "SD_MMCHC";
+  } else {
+    str += "UNKNOWN";
+  }
+
+  Serial0.println(str);
+  uint32_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
+
+  str = "SD_MMC Card Size: ";
+  str += cardSize;
+  Serial0.println(str);
+
+  str = "Total space: ";
+  str += uint32_t(SD_MMC.totalBytes() / (1024 * 1024));
+  str += "MB";
+  Serial0.println(str);
+
+  str = "Used space: ";
+  str += uint32_t(SD_MMC.usedBytes() / (1024 * 1024));
+  str += "MB";
+  Serial0.println(str);
 }
