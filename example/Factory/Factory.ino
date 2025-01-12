@@ -265,7 +265,7 @@ void downloadMode() {
   stopMSC();
   vTaskDelete(ledTaskHandle);
   delay(100);
-  chip_usb_set_persist_flags(0);
+  chip_usb_set_persist_flags(0x40002724);
   REG_WRITE(RTC_CNTL_OPTION1_REG, RTC_CNTL_FORCE_DOWNLOAD_BOOT);
   //ESP.deepSleep(2000000);
   ESP.restart();
