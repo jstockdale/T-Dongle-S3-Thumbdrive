@@ -141,23 +141,33 @@ void scan_wifi_rssi(int32_t &x, int32_t &y) {
   }
   Serial0.println("");
   
+  for(int i = 0; i < 30; ++i) {
+    delay(100);
+    button.tick();
+  }
   x = y = 0;
   tft.fillScreen(TFT_BLACK);
 
   PRINT_STR("Connecting to:", x, y);
   PRINT_STR("Sloth Country Manor", x, y);
   WiFi.begin("Sloth Country Manor", "SlothLovesYou");
+  int loops = 0;
   while (WiFi.status() != WL_CONNECTED) {
     delay(100);
     button.tick();
     Serial.print(".");
+    if (++loops > 30) break;
   }
   // Print local IP address and start web server
   PRINT_STR("", x, y);
-  PRINT_STR("WiFi connected.", x, y);
-  PRINT_STR("", x, y);
-  PRINT_STR("IP address: ", x, y);
-  PRINT_STR(WiFi.localIP().toString(), x, y);
+  if (WiFi.status() == WL_CONNECTED) {
+    PRINT_STR("WiFi connected.", x, y);
+    PRINT_STR("", x, y);
+    PRINT_STR("IP address: ", x, y);
+    PRINT_STR(WiFi.localIP().toString(), x, y);
+  } else {
+    PRINT_STR("WiFi failed to connect!", x, y);
+  }
   Serial0.println();
 }
 
@@ -165,9 +175,9 @@ void startMSC() {
   if (!msc_initialized) {
     Serial0.println("Initializing MSC");
     // Initialize USB metadata and callbacks for MSC (Mass Storage Class)
-    msc.vendorID("ESP32");
-    msc.productID("USB_MSC");
-    msc.productRevision("1.0");
+    msc.vendorID("LILYGO");       // max 8 chars
+    msc.productID("T-Dongle-S3"); // max 16 chars
+    msc.productRevision("1.0");   // max 4 chars
     msc.onRead(onRead);
     msc.onWrite(onWrite);
     msc.onStartStop(onStartStop);
