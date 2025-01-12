@@ -437,11 +437,11 @@ void loop() { // Put your main code here, to run repeatedly:
   
   String input = getSerialInput();
 
-  if (input != "" && input != "\n") {
-    Serial0.println();
-    Serial0.print("Received Command: ");
-    Serial0.println(input);
-    if(input.length() > 0) {
+  if (input.length() > 0) {
+    if(input != "\n") {
+      Serial0.println();
+      Serial0.print("Received Command: ");
+      Serial0.println(input);
       processCommand(input);
     }
     Serial0.print("> ");
@@ -594,7 +594,7 @@ String getSerialInput() {
     } else if (serial_buffer_idx >= 254) {
       Serial0.println("Serial buffer overrun?");
     }
-//    Serial0.println("Received bytes over serial: " + String(bytes_received));
+    //Serial0.println("Received bytes over serial: " + String(bytes_received));
 //    Serial0.println("Buffer: " + String(serial_buffer));
 //    Serial0.println("Buffer idx: " + String(serial_buffer_idx));
   }
@@ -639,7 +639,7 @@ String getSerialInput() {
     // make sure to set correct buffer index for remaining data
     serial_buffer_idx = serial_buffer_idx - (index_of_newline + 1);
 
-    command_line.trim();
+    if (command_line != "\n") command_line.trim();
     return command_line;
   } else if (index_of_newline == -1 && serial_buffer_idx == 254) {
     // flush buffer if we're full; don't let it overrun
