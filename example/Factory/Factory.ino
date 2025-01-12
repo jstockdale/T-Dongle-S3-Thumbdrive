@@ -238,6 +238,15 @@ void backlightOn() {
   return;
 }
 
+void rotateScreen() {
+  if (rotation == 1) {
+      rotation = 3;
+    } else {
+      rotation = 1;
+  }
+  tft.setRotation(rotation);
+}
+
 void rebootDevice() {
   stopMSC();
   ESP.restart();
@@ -323,12 +332,7 @@ void setup() {
   });
 
   button.attachLongPressStop([] {
-    if (rotation == 1) {
-      rotation = 3;
-    } else {
-      rotation = 1;
-    }
-    tft.setRotation(rotation);
+    rotateScreen();
   });
 
   // MultiClick button event attachment with self pointer as a parameter
@@ -657,7 +661,7 @@ String getSerialInput() {
 
 int processCommand(String input) {
   if(input.length() > 0) {
-    if (input == "poweroff") {
+    if (input == "power off") {
       Serial0.println("Powering off!");
       powerOff();
     } else if (input == "reboot") {
@@ -672,6 +676,12 @@ int processCommand(String input) {
       startMSC();
     } else if (input == "stopmsc") {
       stopMSC();
+    } else if (input == "screenoff") {
+      backlightOff();
+    } else if (input == "screenon") {
+      backlightOn();
+    } else if (input == "rotatescreen") {
+      rotateScreen();
     } else if (input == "help") {
       displayHelp();
     } else {
@@ -682,7 +692,7 @@ int processCommand(String input) {
 }
 
 void displayHelp() {
-  Serial0.println("\n\rAvailable commands: poweroff | reboot | downloadmode | sdinfo | startmsc | stopmsc");
+  Serial0.println("\r\nAvailable commands: poweroff | reboot | downloadmode | sdinfo | startmsc | stopmsc | screenon | screenoff");
 }
 
 void sdInfo() {
