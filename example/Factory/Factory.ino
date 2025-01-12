@@ -8,6 +8,9 @@
 #include "esp_chip_info.h"
 #include "esp_system.h"
 #include "soc/rtc_cntl_reg.h"
+#include "soc/rtc.h"
+#include "driver/rtc_io.h"
+#include "esp32s3/rom/usb/chip_usb_dw_wrapper.h"
 
 /* external library */
 /* To use Arduino, you need to place lv_conf.h in the \Arduino\libraries directory */
@@ -262,6 +265,7 @@ void downloadMode() {
   stopMSC();
   vTaskDelete(ledTaskHandle);
   delay(100);
+  chip_usb_set_persist_flags(0);
   REG_WRITE(RTC_CNTL_OPTION1_REG, RTC_CNTL_FORCE_DOWNLOAD_BOOT);
   //ESP.deepSleep(2000000);
   ESP.restart();
@@ -278,9 +282,9 @@ void powerOff() {
     stopMSC();
     vTaskDelete(ledTaskHandle);
     delay(100);
-//    digitalWrite(LED_DI_PIN, 0);
-//    digitalWrite(LED_CI_PIN, 0);
-    pinMode(TFT_LEDA_PIN, INPUT_PULLUP);
+    digitalWrite(TFT_LEDA_PIN, 1);
+    gpio_hold_en((gpio_num_t)TFT_LEDA_PIN);
+    gpio_deep_sleep_hold_en();
     esp_sleep_enable_ext0_wakeup((gpio_num_t)BTN_PIN,LOW); 
     esp_deep_sleep_start();
 }
@@ -305,6 +309,9 @@ void setup() {
   Serial0.println();
   Serial0.println("Hello from T-Dongle-S3!");
   Serial0.println();
+
+  gpio_deep_sleep_hold_dis();
+  gpio_hold_dis((gpio_num_t)TFT_LEDA_PIN);
   pinMode(TFT_LEDA_PIN, OUTPUT);
 
   // BGR ordering is typical
@@ -672,17 +679,22 @@ int processCommand(String input) {
     } else if (input == "downloadmode") {
       Serial0.println("Entering download mode ...");
       downloadMode();
+    } else if (input == "led off") {
+      leds_run = false;
+      leds = CRGB::Black;
+    } else if (input == "led on") {
+      leds_run = true;
     } else if (input == "sdinfo" ) {
       sdInfo();
-    } else if (input == "startmsc") {
+    } else if (input == "msc start") {
       startMSC();
-    } else if (input == "stopmsc") {
+    } else if (input == "msc stop") {
       stopMSC();
-    } else if (input == "screenoff") {
+    } else if (input == "screen off") {
       backlightOff();
-    } else if (input == "screenon") {
+    } else if (input == "screen on") {
       backlightOn();
-    } else if (input == "rotatescreen") {
+    } else if (input == "screen rotate") {
       rotateScreen();
     } else if (input == "help") {
       displayHelp();
@@ -694,7 +706,7 @@ int processCommand(String input) {
 }
 
 void displayHelp() {
-  Serial0.println("Available commands: poweroff | reboot | downloadmode | sdinfo | startmsc | stopmsc | screenon | screenoff");
+  Serial0.println("Available commands: power off | reboot | downloadmode | sdinfo | led <on|off> | msc <start|stop> | screen <on|off|rotate>");
 }
 
 void sdInfo() {
